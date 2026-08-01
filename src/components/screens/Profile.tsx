@@ -2,7 +2,6 @@ import { motion } from 'framer-motion';
 import { usePlayerStore } from '../../store/playerStore';
 import { getHeroClass } from '../../data/heroClasses';
 import { getSkin } from '../../data/skins';
-import { getWeapon } from '../../data/weapons';
 import { ACHIEVEMENTS } from '../../data/achievements';
 import { BOSSES } from '../../data/enemies';
 import { getWorld } from '../../data/worlds';
@@ -40,7 +39,6 @@ export default function Profile({ onBack }: ProfileProps) {
   const unlockedAchievements = usePlayerStore((s) => s.unlockedAchievements);
   const heroClass = usePlayerStore((s) => s.heroClass);
   const selectedSkinByHero = usePlayerStore((s) => s.selectedSkinByHero);
-  const selectedWeapon = usePlayerStore((s) => s.selectedWeapon);
   const bestCombo = usePlayerStore((s) => s.bestCombo);
   const totalEnemiesDefeated = usePlayerStore((s) => s.totalEnemiesDefeated);
   const streakDays = usePlayerStore((s) => s.streakDays);
@@ -48,19 +46,18 @@ export default function Profile({ onBack }: ProfileProps) {
 
   const hero = getHeroClass(heroClass);
   const skin = getSkin(selectedSkinByHero[heroClass]);
-  const weapon = getWeapon(selectedWeapon);
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center p-6 overflow-y-auto">
+    <div className="relative w-full h-full flex flex-col items-center p-4 sm:p-6 pt-14 sm:pt-6 overflow-y-auto">
       <button
         onClick={onBack}
-        className="absolute top-6 left-6 text-white/50 hover:text-white text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400 rounded"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 p-2 -m-2 text-white/60 hover:text-white text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400 rounded"
       >
         ← Back
       </button>
-      <h2 className="text-3xl font-black text-white/90 mb-1">Profile</h2>
+      <h2 className="text-2xl sm:text-3xl font-black text-white/90 mb-1">Profile</h2>
       <p className="text-white/40 text-sm mb-6">
-        {hero.name} — {skin.name} · {weapon.name}
+        {hero.name} — {skin.name}
       </p>
 
       <div className="max-w-3xl w-full mb-3 flex items-center gap-3 panel rounded-xl px-4 py-3">

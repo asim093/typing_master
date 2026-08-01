@@ -1,4 +1,6 @@
 import FallingParticles from './FallingParticles';
+import WindParticles from './WindParticles';
+import HeatHaze from './HeatHaze';
 
 function Dune({ position, radius }: { position: [number, number, number]; radius: number }) {
   return (
@@ -50,7 +52,11 @@ export default function DesertEnvironment() {
         );
       })}
 
-      <FallingParticles count={70} color="#e8c98a" size={0.045} area={[16, 5, 16]} speed={0.15} opacity={0.4} />
+      {/* Air: slow settling dust, grit driven across on the wind, and heat
+          shimmer sitting along the distant ground line. */}
+      <FallingParticles count={50} color="#e8c98a" size={0.045} area={[16, 5, 16]} speed={0.15} opacity={0.35} />
+      <WindParticles count={90} color="#f0d6a0" size={0.05} area={[22, 4.5, 14]} speed={2.6} opacity={0.4} />
+      <HeatHaze color="#ffd9a0" bands={5} opacity={0.07} radius={11} />
     </group>
   );
 }

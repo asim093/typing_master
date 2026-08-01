@@ -3,14 +3,15 @@ import type { BossDef, EnemyShape, FloatingDamage, RewardBundle, World } from '.
 import { usePlayerStore } from '../store/playerStore';
 import { ENEMIES, BOSSES, getRandomEnemyForWorld } from '../data/enemies';
 import { getSkin } from '../data/skins';
-import { getWeapon } from '../data/weapons';
 import { pickRandomWord } from '../data/words';
+import { getHeroClass } from '../data/heroClasses';
 import { triggerFreeze, triggerSlowMo } from './timeScale';
 import { playSfx, playHeroSword, playEnemySword } from './audio';
 import {
   computeWordDamage,
   coinsForEnemy,
   maxHealthFor,
+  scaledEnemyAttackInterval,
   scaledEnemyDamage,
   scaledEnemyHp,
   wordTimeLimitMs,
@@ -62,6 +63,20 @@ let eventId = 0;
 let popupId = 0;
 let rewardId = 0;
 
+/**
+ * How long the hero takes to visibly cross the arena and reach the enemy
+ * once an attack starts — must stay in step with useCombatAnimator's
+ * dash-out phase. Everything about the *impact* (HP drop, damage number,
+ * screen shake, hit sound, hit flash) waits this long before firing.
+ *
+ * Previously all of it fired on the same tick as the hero starting to
+ * move, so the enemy visibly took the hit while the hero was still
+ * standing at its home position — reading as the hero "hitting from a
+ * distance". Kept short enough that a player can't finish another word
+ * inside the window, so attacks never overlap in practice.
+ */
+const HERO_CONTACT_DELAY_MS = 215;
+
 function findBoss(worldId: string, level: number, defeated: string[]): BossDef | undefined {
   return BOSSES.find((b) => b.worldId === worldId && level >= b.level && !defeated.includes(b.id));
 }
@@ -108,6 +123,26 @@ export function useCombatEngine(world: World) {
   const runStartRef = useRef(performance.now());
   const runCorrectCharsRef = useRef(0);
   const pausedRef = useRef(false);
+  // The enemy's authoritative HP, updated synchronously the instant a word
+  // lands. The visible HP drop is deferred to the moment the hero actually
+  // reaches the enemy (see HERO_CONTACT_DELAY_MS), so `enemy.hp` in state
+  // lags by a frame or two — reading it to compute the next hit would then
+  // double-apply damage against a stale value.
+  const enemyHpRef = useRef(0);
+  const impactTimersRef = useRef<number[]>([]);
+
+  const scheduleImpact = useCallback((fn: () => void) => {
+    const id = window.setTimeout(() => {
+      impactTimersRef.current = impactTimersRef.current.filter((t) => t !== id);
+      fn();
+    }, HERO_CONTACT_DELAY_MS);
+    impactTimersRef.current.push(id);
+  }, []);
+
+  useEffect(() => () => {
+    impactTimersRef.current.forEach((t) => window.clearTimeout(t));
+    impactTimersRef.current = [];
+  }, []);
 
   const pushEvent = useCallback((text: string, kind: CombatEvent['kind']) => {
     const id = ++eventId;
@@ -146,7 +181,9 @@ export function useCombatEngine(world: World) {
 
   const spawnWord = useCallback((level: number) => {
     const word = pickRandomWord(level, world.id, recentWordsRef.current);
-    recentWordsRef.current = [...recentWordsRef.current, word].slice(-18);
+    // Keep a generous history; pickRandomWord decides how much of the tail
+    // it can actually afford to block for the current tier's pool size.
+    recentWordsRef.current = [...recentWordsRef.current, word].slice(-60);
     setCurrentWord(word);
     setTypedInput('');
     mistakesRef.current = 0;
@@ -173,9 +210,10 @@ export function useCombatEngine(world: World) {
         maxHp: hp,
         hp,
         damage: dmg,
-        attackIntervalMs: 3400,
+        attackIntervalMs: scaledEnemyAttackInterval(3400, level),
         specialAttackName: boss.specialAttackName,
       });
+      enemyHpRef.current = hp;
       enemyAttackCountRef.current = 0;
       setPhase('bossIntro');
       playSfx('bossRoar');
@@ -195,8 +233,9 @@ export function useCombatEngine(world: World) {
       maxHp: hp,
       hp,
       damage: dmg,
-      attackIntervalMs: def.attackIntervalMs,
+      attackIntervalMs: scaledEnemyAttackInterval(def.attackIntervalMs, level),
     });
+    enemyHpRef.current = hp;
     setPhase('fighting');
     spawnWord(level);
   }, [world, spawnWord]);
@@ -287,29 +326,32 @@ export function useCombatEngine(world: World) {
     setRunEnemiesDefeated((n) => n + 1);
     setRunXpEarned((n) => n + xp);
     setRunCoinsEarned((n) => n + coins);
-    if (result.newlyUnlockedSkins.length || result.newlyUnlockedWeapons.length || result.newlyUnlockedWorld) {
+    if (result.newlyUnlockedSkins.length || result.newlyUnlockedHeroes.length || result.newlyUnlockedWorld) {
       setRunUnlocks((prev) => [
         ...prev,
+        ...result.newlyUnlockedHeroes.map((id) => `Hero: ${getHeroClass(id).name}`),
         ...result.newlyUnlockedSkins.map((id) => `Skin: ${getSkin(id).name}`),
-        ...result.newlyUnlockedWeapons.map((id) => `Weapon: ${getWeapon(id).name}`),
         ...(result.newlyUnlockedWorld ? [`World Unlocked`] : []),
       ]);
     }
 
     const rewardLines: RewardBundle['lines'] = [{ id: 1, label: `+${coins} Coins`, icon: 'coin' }];
     if (defeatedEnemy.isBoss) rewardLines.unshift({ id: 0, label: `${defeatedEnemy.name} Defeated!`, icon: 'crown' });
+    // Heroes lead the reward list — a new playable character is the single
+    // biggest thing a level-up can give, so it shouldn't sit under skins.
+    for (const heroId of result.newlyUnlockedHeroes) {
+      rewardLines.unshift({ id: 0, label: `NEW HERO: ${getHeroClass(heroId).name}`, icon: 'hero' });
+      pushPopup(`${getHeroClass(heroId).name.toUpperCase()} UNLOCKED`, 'best');
+      playSfx('unlock');
+    }
     for (const skinId of result.newlyUnlockedSkins) {
       const skin = getSkin(skinId);
       rewardLines.push({ id: rewardLines.length + 1, label: `Skin Unlocked: ${skin.name}`, icon: 'skin' });
     }
-    for (const weaponId of result.newlyUnlockedWeapons) {
-      const weapon = getWeapon(weaponId);
-      rewardLines.push({ id: rewardLines.length + 1, label: `New Weapon: ${weapon.name}`, icon: 'weapon' });
-    }
     if (result.leveledUp) {
       rewardLines.push({ id: rewardLines.length + 1, label: `Level Up! Level ${result.newLevel}`, icon: 'star' });
     }
-    if (defeatedEnemy.isBoss || result.leveledUp || result.newlyUnlockedSkins.length || result.newlyUnlockedWeapons.length) {
+    if (defeatedEnemy.isBoss || result.leveledUp || result.newlyUnlockedSkins.length) {
       pushReward(defeatedEnemy.isBoss ? 'Boss Defeated!' : 'Rewards', rewardLines);
     }
 
@@ -344,6 +386,10 @@ export function useCombatEngine(world: World) {
 
   const handleWordComplete = useCallback(() => {
     if (!enemy) return;
+    // A killing blow may still be in flight (its HP drop/defeat lands at
+    // contact, not on keypress) — don't let a word finished inside that
+    // window register as another hit on an already-dead enemy.
+    if (enemyHpRef.current <= 0) return;
     const level = usePlayerStore.getState().level;
     const skills = usePlayerStore.getState().skills;
     const wordLen = currentWord.length;
@@ -358,18 +404,29 @@ export function useCombatEngine(world: World) {
     }
 
     const { damage, crit } = computeWordDamage(wordLen, nextCombo, accuracyRatio, skills);
+    // Hero launches now; everything that represents the blow *connecting*
+    // is scheduled for when it actually gets there (HERO_CONTACT_DELAY_MS).
     setHeroAttackSeed((s) => s + 1);
-    setEnemyHitSeed((s) => s + 1);
-    setEnemyHitCrit(crit);
-    setShakeSeed((s) => s + (crit ? 2 : 1));
-    pushFloating(damage, crit, 'enemy');
-    playSfx(crit ? 'critHit' : 'swordHit');
     playHeroSword();
+
+    const newHp = Math.max(0, enemyHpRef.current - damage);
+    enemyHpRef.current = newHp;
+    const enemyAtImpact = enemy;
+
+    scheduleImpact(() => {
+      setEnemyHitSeed((s) => s + 1);
+      setEnemyHitCrit(crit);
+      setShakeSeed((s) => s + (crit ? 2 : 1));
+      pushFloating(damage, crit, 'enemy');
+      playSfx(crit ? 'critHit' : 'swordHit');
+      if (crit) triggerFreeze(45);
+      setEnemy((e) => (e ? { ...e, hp: newHp } : e));
+      if (newHp <= 0) finishEnemy({ ...enemyAtImpact, hp: 0 });
+    });
 
     if (crit) {
       setRunCrits((n) => n + 1);
       pushPopup('CRITICAL HIT', 'critical');
-      triggerFreeze(45);
     } else {
       const elapsed = performance.now() - wordStartRef.current;
       const limit = wordDeadlineRef.current - wordStartRef.current;
@@ -398,15 +455,11 @@ export function useCombatEngine(world: World) {
       pushPopup(`NEW BEST: ${wpm} WPM`, 'best');
     }
 
-    const newHp = Math.max(0, enemy.hp - damage);
-    setEnemy((e) => (e ? { ...e, hp: newHp } : e));
-
-    if (newHp <= 0) {
-      finishEnemy({ ...enemy, hp: 0 });
-    } else {
-      spawnWord(level);
-    }
-  }, [enemy, currentWord, combo, pushFloating, pushPopup, finishEnemy, spawnWord]);
+    // The next word comes up immediately even though the impact is still
+    // in flight — a fast typist should never be made to wait on the hero's
+    // swing to finish before they can keep going.
+    if (newHp > 0) spawnWord(level);
+  }, [enemy, currentWord, combo, pushFloating, pushPopup, finishEnemy, spawnWord, scheduleImpact]);
 
   const handleInputChange = useCallback((value: string) => {
     if (phase !== 'fighting') return;

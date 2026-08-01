@@ -10,6 +10,7 @@ interface HeroProps {
   hitSeed: number;
   hitCrit?: boolean;
   victorySeed: number;
+  dying: boolean;
 }
 
 export default function Hero(props: HeroProps) {

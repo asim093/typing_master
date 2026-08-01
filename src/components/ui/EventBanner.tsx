@@ -11,7 +11,9 @@ const KIND_STYLES: Record<CombatEvent['kind'], string> = {
 
 export default function EventBanner({ events }: { events: CombatEvent[] }) {
   return (
-    <div className="pointer-events-none absolute top-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20">
+    // Pushed further down on phones so it clears the HUD's level-progress
+    // chip, which sits directly below the top panels on a narrow screen.
+    <div className="pointer-events-none absolute top-32 sm:top-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20 px-3 max-w-full">
       <AnimatePresence>
         {events.map((e) => (
           <motion.div

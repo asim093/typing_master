@@ -45,14 +45,14 @@ const COLOR_KEY = [
 
 export default function HowToPlay({ onBack }: HowToPlayProps) {
   return (
-    <div className="relative w-full h-full flex flex-col items-center p-8 overflow-y-auto">
+    <div className="relative w-full h-full flex flex-col items-center p-4 sm:p-8 pt-14 sm:pt-8 overflow-y-auto">
       <button
         onClick={onBack}
-        className="absolute top-6 left-6 text-white/50 hover:text-white text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400 rounded"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 p-2 -m-2 text-white/60 hover:text-white text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400 rounded"
       >
         ← Back
       </button>
-      <h2 className="text-3xl font-black mb-1 text-white/90">How to Play</h2>
+      <h2 className="text-2xl sm:text-3xl font-black mb-1 text-white/90">How to Play</h2>
       <p className="text-white/40 text-sm mb-8">Everything you need before your first fight.</p>
 
       <div className="max-w-2xl w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">

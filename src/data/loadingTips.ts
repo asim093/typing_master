@@ -1,0 +1,15 @@
+export const LOADING_TIPS: string[] = [
+  'Longer words hit harder — a 7-letter word deals more damage than a 3-letter one.',
+  'Build a combo by typing words back-to-back without a mistake. The higher the combo, the bigger your damage multiplier.',
+  'Type a word with zero mistakes in under half the time limit for a PERFECT bonus.',
+  'Critical hits are chance-based — invest skill points in Critical Chance to land them more often.',
+  'Every world has a boss waiting a few levels in — check the HUD for how many levels away it is.',
+  'Bosses hit much harder and have far more HP than regular enemies — keep your combo alive to burn them down fast.',
+  'Word difficulty scales with your level — expect longer, trickier words the further you progress.',
+  'A mistyped letter shows up in red — no need to backspace, just keep typing the rest of the word correctly.',
+  'Each world leans on different word themes — nature and myth in the woods, history in the ruins, tech in the city.',
+  'Log in on consecutive days to build a streak — check your Profile to see it.',
+  'Unlock new heroes, skins, and weapons as you level up — visit Heroes & Weapons from the main menu.',
+  'Spend skill points in the Skill Tree: Attack Power, Critical Chance, Combo Bonus, XP Gain, or Vitality.',
+  'Accuracy matters as much as speed — a fast but sloppy run deals less damage than a clean one.',
+];

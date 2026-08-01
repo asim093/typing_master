@@ -78,12 +78,32 @@ export function wordTimeLimitMs(wordLength: number, level: number): number {
   return Math.round(base * (1 - levelTightening));
 }
 
+/**
+ * HP growth is deliberately mild. Raw HP inflation doesn't make a typing
+ * game harder — it just makes each enemy take more words, which reads as
+ * padding rather than challenge. The real difficulty comes from the word
+ * tiers (longer/rarer words at higher levels), the tightening per-word
+ * time limit, and enemies attacking faster — see scaledEnemyAttackInterval.
+ * Damage scales a little faster than HP so mistakes cost more over time.
+ */
 export function scaledEnemyHp(baseHp: number, level: number): number {
-  return Math.round(baseHp * (1 + (level - 1) * 0.11));
+  return Math.round(baseHp * (1 + (level - 1) * 0.055));
 }
 
 export function scaledEnemyDamage(baseDamage: number, level: number): number {
-  return Math.round(baseDamage * (1 + (level - 1) * 0.07));
+  return Math.round(baseDamage * (1 + (level - 1) * 0.08));
+}
+
+/**
+ * Enemies swing progressively faster, which squeezes the real resource in
+ * this game — the time you have to type the next word — instead of padding
+ * the healthbar. Floored so it stays humanly answerable at high level.
+ */
+export const MIN_ENEMY_ATTACK_INTERVAL_MS = 1500;
+
+export function scaledEnemyAttackInterval(baseIntervalMs: number, level: number): number {
+  const speedUp = 1 - Math.min(0.45, (level - 1) * 0.012);
+  return Math.max(MIN_ENEMY_ATTACK_INTERVAL_MS, Math.round(baseIntervalMs * speedUp));
 }
 
 export function coinsForEnemy(hp: number): number {

@@ -6,7 +6,6 @@ import { WORLDS } from '../data/worlds';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { SKILLS } from '../data/skills';
 import { SKINS, defaultSkinForHero } from '../data/skins';
-import { WEAPONS } from '../data/weapons';
 import { HERO_CLASSES } from '../data/heroClasses';
 
 function dateKey(d: Date): string {
@@ -45,8 +44,6 @@ const DEFAULT_STATE: PlayerStats = {
   heroClass: 'knight',
   unlockedSkins: SKINS.filter((s) => s.unlockLevel <= 1).map((s) => s.id),
   selectedSkinByHero: { ...DEFAULT_SKIN_BY_HERO },
-  unlockedWeapons: WEAPONS.filter((w) => w.unlockLevel <= 1).map((w) => w.id),
-  selectedWeapon: 'iron_sword',
   totalTimePlayedMs: 0,
   muted: false,
   streakDays: 0,
@@ -60,7 +57,7 @@ export interface AddXpResult {
   newLevel: number;
   newlyUnlockedWorld?: WorldId;
   newlyUnlockedSkins: string[];
-  newlyUnlockedWeapons: string[];
+  newlyUnlockedHeroes: HeroClassId[];
   coinsAwarded: number;
 }
 
@@ -78,7 +75,6 @@ interface PlayerStore extends PlayerStats {
   recordCombo: (combo: number) => boolean;
   setHeroClass: (id: HeroClassId) => void;
   setSkinForCurrentHero: (skinId: string) => boolean;
-  setWeapon: (weaponId: string) => boolean;
   addPlayTime: (ms: number) => void;
   toggleMuted: () => void;
   recordDailyLogin: () => { streak: number; isNewDay: boolean };
@@ -110,9 +106,8 @@ export const usePlayerStore = create<PlayerStore>()(
         let newlyUnlockedWorld: WorldId | undefined;
         let unlockedWorlds = state.unlockedWorlds;
         let unlockedSkins = state.unlockedSkins;
-        let unlockedWeapons = state.unlockedWeapons;
         const newlyUnlockedSkins: string[] = [];
-        const newlyUnlockedWeapons: string[] = [];
+        const newlyUnlockedHeroes: HeroClassId[] = [];
 
         if (levelsGained > 0) {
           const stillLocked = WORLDS.filter((w) => level >= w.unlockLevel && !unlockedWorlds.includes(w.id));
@@ -127,10 +122,14 @@ export const usePlayerStore = create<PlayerStore>()(
               newlyUnlockedSkins.push(skin.id);
             }
           }
-          for (const weapon of WEAPONS) {
-            if (level >= weapon.unlockLevel && !unlockedWeapons.includes(weapon.id)) {
-              unlockedWeapons = [...unlockedWeapons, weapon.id];
-              newlyUnlockedWeapons.push(weapon.id);
+
+          // Heroes have no "unlocked" list — availability is derived from
+          // level — so a crossing is detected by comparing the level before
+          // and after this XP award. comingSoon ones are skipped so the
+          // player isn't congratulated on something they still can't pick.
+          for (const hero of HERO_CLASSES) {
+            if (!hero.comingSoon && state.level < hero.unlockLevel && level >= hero.unlockLevel) {
+              newlyUnlockedHeroes.push(hero.id);
             }
           }
         }
@@ -141,7 +140,6 @@ export const usePlayerStore = create<PlayerStore>()(
           skillPoints,
           unlockedWorlds,
           unlockedSkins,
-          unlockedWeapons,
           totalXpEarned: state.totalXpEarned + gained,
           coins: state.coins + Math.round(coinsAwarded),
         });
@@ -151,7 +149,7 @@ export const usePlayerStore = create<PlayerStore>()(
           newLevel: level,
           newlyUnlockedWorld,
           newlyUnlockedSkins,
-          newlyUnlockedWeapons,
+          newlyUnlockedHeroes,
           coinsAwarded: Math.round(coinsAwarded),
         };
       },
@@ -227,13 +225,6 @@ export const usePlayerStore = create<PlayerStore>()(
         return true;
       },
 
-      setWeapon: (weaponId) => {
-        const state = get();
-        if (!state.unlockedWeapons.includes(weaponId)) return false;
-        set({ selectedWeapon: weaponId });
-        return true;
-      },
-
       addPlayTime: (ms) => set((s) => ({ totalTimePlayedMs: s.totalTimePlayedMs + ms })),
 
       toggleMuted: () => set((s) => ({ muted: !s.muted })),
@@ -260,14 +251,38 @@ export const usePlayerStore = create<PlayerStore>()(
     }),
     {
       name: 'typequest-save',
-      version: 3,
+      version: 6,
       // v3: all worlds unlocked for testing — existing saves (persisted with
       // the old ['forest']-only default) need this forced in too, since
       // persist rehydrates straight from localStorage over the new default.
+      // v4: weapon selection was removed (every class now has one fixed
+      // weapon) — drop the old unlockedWeapons/selectedWeapon keys so they
+      // don't linger as dead data in old saves.
+      // v5: classes without a real model were marked comingSoon and can no
+      // longer be selected — a save left on one of them needs to fall back
+      // to the default class so it isn't stuck on an unselectable hero.
+      // v6: Samurai now needs level 5 — a save below that on Samurai needs
+      // the same fallback.
       migrate: (persisted, version) => {
-        const state = persisted as PlayerStats;
+        const state = persisted as PlayerStats & { unlockedWeapons?: string[]; selectedWeapon?: string };
         if (version < 3) {
           state.unlockedWorlds = WORLDS.map((w) => w.id);
+        }
+        if (version < 4) {
+          delete state.unlockedWeapons;
+          delete state.selectedWeapon;
+        }
+        if (version < 5) {
+          const current = HERO_CLASSES.find((h) => h.id === state.heroClass);
+          if (!current || current.comingSoon) {
+            state.heroClass = 'knight';
+          }
+        }
+        if (version < 6) {
+          const current = HERO_CLASSES.find((h) => h.id === state.heroClass);
+          if (!current || state.level < current.unlockLevel) {
+            state.heroClass = 'knight';
+          }
         }
         return state;
       },

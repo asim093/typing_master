@@ -1,5 +1,6 @@
 import { useProgress } from '@react-three/drei';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 
 interface ModelLoadingOverlayProps {
   /**
@@ -13,8 +14,27 @@ interface ModelLoadingOverlayProps {
   variant?: 'overlay' | 'badge';
 }
 
+// useProgress() reads THREE's DefaultLoadingManager, but a React.lazy()
+// component's dynamic import() resolves *before* useGLTF ever registers
+// with that manager — so `active` can read false for a brief moment right
+// at mount even though the real model hasn't loaded yet. On a first visit
+// (nothing cached) that gap let the low-poly Suspense fallback show
+// uncovered, then the real model would swap in abruptly — this holds the
+// overlay up through that gap regardless of what `active` says yet.
+const MOUNT_GRACE_MS = 500;
+
 export default function ModelLoadingOverlay({ variant = 'overlay' }: ModelLoadingOverlayProps) {
   const { active, progress } = useProgress();
+  const [inGracePeriod, setInGracePeriod] = useState(true);
+  const mountedAtRef = useRef(performance.now());
+
+  useEffect(() => {
+    const elapsed = performance.now() - mountedAtRef.current;
+    const t = window.setTimeout(() => setInGracePeriod(false), Math.max(0, MOUNT_GRACE_MS - elapsed));
+    return () => window.clearTimeout(t);
+  }, []);
+
+  const show = active || inGracePeriod;
 
   if (variant === 'badge') {
     return (
@@ -38,7 +58,7 @@ export default function ModelLoadingOverlay({ variant = 'overlay' }: ModelLoadin
 
   return (
     <AnimatePresence>
-      {active && (
+      {show && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

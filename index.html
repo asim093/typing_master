@@ -3,7 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover so the arena can extend under notches/rounded
+         corners; the UI itself keeps clear of them via safe-area insets.
+         Deliberately NOT using user-scalable=no — the typing input is sized
+         at 16px instead, which is what actually stops iOS auto-zooming on
+         focus, without taking pinch-zoom away from the player. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0714" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>TypeQuest</title>
   </head>
   <body>

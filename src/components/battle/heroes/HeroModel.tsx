@@ -5,7 +5,8 @@ import type { HeroClassId, SkinDef, WeaponDef } from '../../../types';
 import { useCombatAnimator } from '../../../game/useCombatAnimator';
 import Weapon from '../Weapon';
 
-// 60MB GLB — only fetch it if the player actually picked the Knight class.
+// Only fetch these if the player actually picked that class.
+const Hero2GLB = lazy(() => import('./Hero2GLB'));
 const WarriorGLB = lazy(() => import('./WarriorGLB'));
 
 export interface HeroModelProps {
@@ -16,6 +17,7 @@ export interface HeroModelProps {
   hitSeed: number;
   hitCrit?: boolean;
   victorySeed: number;
+  dying: boolean;
 }
 
 const SKIN_TONE = '#f5d0a9';
@@ -274,14 +276,18 @@ export default function HeroModel(props: HeroModelProps) {
     case 'mage':
       return <Mage {...props} />;
     case 'samurai':
-      return <Samurai {...props} />;
+      return (
+        <Suspense fallback={<Samurai {...props} />}>
+          <WarriorGLB {...props} />
+        </Suspense>
+      );
     case 'cyberninja':
       return <CyberNinja {...props} />;
     case 'knight':
     default:
       return (
         <Suspense fallback={<Knight {...props} />}>
-          <WarriorGLB {...props} />
+          <Hero2GLB {...props} />
         </Suspense>
       );
   }

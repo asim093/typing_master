@@ -48,26 +48,26 @@ type Pool = Record<WordCategory, string[]>;
 
 // Tier 1 — Easy (levels 1-10)
 const TIER1: Pool = {
-  nature: ['tree', 'leaf', 'rock', 'wind', 'rain', 'cloud', 'river', 'stone', 'plant', 'grass', 'ocean', 'storm', 'earth', 'field', 'hill', 'bird', 'fish', 'lake', 'sand', 'snow', 'flame', 'wave'],
-  science: ['cell', 'atom', 'heat', 'light', 'sound', 'force', 'magnet', 'liquid', 'solid', 'energy', 'matter', 'weight', 'motion', 'metal'],
-  space: ['moon', 'star', 'sun', 'sky', 'comet', 'orbit', 'rocket', 'planet', 'meteor', 'space', 'alien', 'launch'],
-  history: ['king', 'queen', 'castle', 'knight', 'sword', 'crown', 'throne', 'empire', 'battle', 'army', 'fort', 'ruins', 'coin', 'shield'],
-  technology: ['phone', 'robot', 'screen', 'wifi', 'app', 'code', 'click', 'power', 'wire', 'button', 'camera', 'mouse'],
-  programming: ['code', 'bug', 'key', 'tab', 'run', 'save', 'file', 'byte', 'loop', 'data', 'print', 'input'],
-  fantasy: ['hero', 'quest', 'magic', 'brave', 'blade', 'spell', 'elf', 'potion', 'charm', 'fairy', 'giant', 'troll'],
-  mythology: ['god', 'myth', 'titan', 'oracle', 'fate', 'muse', 'beast', 'curse', 'spirit', 'ghost', 'demon', 'omen'],
+  nature: ['tree', 'leaf', 'rock', 'wind', 'rain', 'cloud', 'river', 'stone', 'plant', 'grass', 'ocean', 'storm', 'earth', 'field', 'hill', 'bird', 'fish', 'lake', 'sand', 'snow', 'flame', 'wave', 'root', 'moss', 'fern', 'pine', 'cave', 'peak', 'reef', 'dust', 'mist', 'tide', 'bloom', 'creek', 'shore', 'trail', 'frost', 'ember', 'marsh', 'grove'],
+  science: ['cell', 'atom', 'heat', 'light', 'sound', 'force', 'magnet', 'liquid', 'solid', 'energy', 'matter', 'weight', 'motion', 'metal', 'gas', 'acid', 'lens', 'pulse', 'spark', 'plasma', 'vapor', 'fossil', 'growth', 'sample'],
+  space: ['moon', 'star', 'sun', 'sky', 'comet', 'orbit', 'rocket', 'planet', 'meteor', 'space', 'alien', 'launch', 'crater', 'lunar', 'solar', 'cosmic', 'shuttle', 'probe', 'signal', 'void'],
+  history: ['king', 'queen', 'castle', 'knight', 'sword', 'crown', 'throne', 'empire', 'battle', 'army', 'fort', 'ruins', 'coin', 'shield', 'siege', 'banner', 'scroll', 'tomb', 'relic', 'armor', 'archer', 'noble', 'realm', 'tribe'],
+  technology: ['phone', 'robot', 'screen', 'wifi', 'app', 'code', 'click', 'power', 'wire', 'button', 'camera', 'mouse', 'laptop', 'signal', 'cable', 'switch', 'device', 'sensor', 'pixel', 'server'],
+  programming: ['code', 'bug', 'key', 'tab', 'run', 'save', 'file', 'byte', 'loop', 'data', 'print', 'input', 'array', 'class', 'const', 'debug', 'index', 'merge', 'null', 'parse', 'query', 'stack', 'value', 'string'],
+  fantasy: ['hero', 'quest', 'magic', 'brave', 'blade', 'spell', 'elf', 'potion', 'charm', 'fairy', 'giant', 'troll', 'rune', 'wand', 'cloak', 'dwarf', 'ogre', 'scroll', 'tower', 'portal', 'shadow', 'flame', 'guild', 'vault', 'orb', 'gem'],
+  mythology: ['god', 'myth', 'titan', 'oracle', 'fate', 'muse', 'beast', 'curse', 'spirit', 'ghost', 'demon', 'omen', 'idol', 'rite', 'shrine', 'hydra', 'sphinx', 'nymph', 'chaos', 'divine', 'mortal', 'vision', 'wraith', 'totem'],
 };
 
 // Tier 2 — Intermediate (levels 11-20)
 const TIER2: Pool = {
-  nature: ['forest', 'volcano', 'glacier', 'thunder', 'wildlife', 'blossom', 'canyon', 'meadow', 'wetland', 'drought', 'harvest', 'erosion', 'habitat', 'sunrise'],
+  nature: ['forest', 'volcano', 'glacier', 'thunder', 'wildlife', 'blossom', 'canyon', 'meadow', 'wetland', 'drought', 'harvest', 'erosion', 'habitat', 'sunrise', 'lagoon', 'plateau', 'estuary', 'tropics', 'foliage', 'cascade', 'sapling', 'thicket', 'monsoon', 'boulder'],
   science: ['molecule', 'element', 'reaction', 'friction', 'pressure', 'velocity', 'chemical', 'organism', 'particle', 'gravity', 'magnetic', 'electron', 'chemistry'],
   space: ['asteroid', 'satellite', 'universe', 'nebula', 'gravity', 'astronaut', 'telescope', 'eclipse', 'galaxy', 'meteorite', 'spaceship', 'starlight'],
   history: ['kingdom', 'warrior', 'village', 'dragon', 'mystery', 'journey', 'weapon', 'monster', 'treasure', 'ancient', 'legend', 'fortress', 'conquest', 'dynasty'],
   technology: ['computer', 'internet', 'keyboard', 'monitor', 'network', 'hardware', 'software', 'battery', 'circuit', 'wireless', 'gadget', 'bluetooth'],
   programming: ['function', 'variable', 'compiler', 'debugger', 'library', 'syntax', 'boolean', 'iterate', 'callback', 'runtime', 'command', 'terminal'],
-  fantasy: ['wizard', 'phoenix', 'crystal', 'goblin', 'sorcery', 'enchant', 'amulet', 'unicorn', 'griffin', 'sanctuary', 'wilderness', 'creature'],
-  mythology: ['olympus', 'valhalla', 'immortal', 'prophecy', 'guardian', 'legend', 'mythical', 'underworld', 'sacred', 'ritual', 'temple', 'chosen'],
+  fantasy: ['wizard', 'phoenix', 'crystal', 'goblin', 'sorcery', 'enchant', 'amulet', 'unicorn', 'griffin', 'sanctuary', 'wilderness', 'creature', 'paladin', 'summon', 'banshee', 'talisman', 'chalice', 'warlock', 'grimoire', 'citadel', 'serpent', 'valiant'],
+  mythology: ['olympus', 'valhalla', 'immortal', 'prophecy', 'guardian', 'legend', 'mythical', 'underworld', 'sacred', 'ritual', 'temple', 'chosen', 'pilgrim', 'destiny', 'eternal', 'ominous', 'seraph', 'obelisk', 'covenant', 'ancestor'],
 };
 
 // Tier 3 — Advanced (levels 21-30)
@@ -132,19 +132,36 @@ export function getWorldCategories(worldId: WorldId): WordCategory[] {
 }
 
 /**
+ * How much of a pool the anti-repeat window is allowed to block. Pool sizes
+ * vary a lot by tier (a world draws ~89 words at tier 1 but only ~18 at
+ * tier 5), so a fixed window would be harmless early and then swallow the
+ * entire expert pool — at which point the filter finds no candidates, falls
+ * through to the unfiltered pool, and repetition quietly comes back. Scaling
+ * the window to the pool keeps a real gap between repeats at every tier
+ * while always leaving something to choose from.
+ */
+const RECENT_WINDOW_RATIO = 0.6;
+
+/**
  * Picks a word for the given level/world, biased toward that world's themed
- * categories, while avoiding anything in `recentWords` (a rolling window of
- * the last ~N words) so repetition stays low across a session.
+ * categories, while avoiding recently-used words so repetition stays low.
+ * `recentWords` is the caller's full history (most recent last); only as
+ * much of its tail as the pool can afford is actually applied.
  */
 export function pickRandomWord(level: number, worldId: WorldId, recentWords: string[] = []): string {
   const tierIndex = tierIndexForLevel(level);
-  const preferred = preferredPool(tierIndex, getWorldCategories(worldId));
-  const full = fullTierPool(tierIndex);
+  // Deduped: a few words legitimately belong to two categories (e.g. "code"
+  // is both technology and programming), which would otherwise weight them
+  // double whenever a world draws on both.
+  const preferred = [...new Set(preferredPool(tierIndex, getWorldCategories(worldId)))];
+  const full = [...new Set(fullTierPool(tierIndex))];
 
   const useThemed = preferred.length > 0 && Math.random() < 0.75;
   const basePool = useThemed ? preferred : full;
 
-  const recentSet = new Set(recentWords);
+  const window = Math.max(1, Math.floor(basePool.length * RECENT_WINDOW_RATIO));
+  const recentSet = new Set(recentWords.slice(-window));
+
   let candidates = basePool.filter((w) => !recentSet.has(w));
   if (candidates.length === 0) candidates = full.filter((w) => !recentSet.has(w));
   if (candidates.length === 0) candidates = full;

@@ -106,6 +106,8 @@ export interface HeroClassDef {
   name: string;
   title: string;
   description: string;
+  comingSoon?: boolean;
+  unlockLevel: number;
 }
 
 export interface SkinDef {
@@ -135,7 +137,6 @@ export interface WeaponDef {
   id: string;
   name: string;
   type: WeaponType;
-  unlockLevel: number;
   bladeColor: string;
   hiltColor: string;
   trailColor: string;
@@ -161,8 +162,6 @@ export interface PlayerStats {
   heroClass: HeroClassId;
   unlockedSkins: string[];
   selectedSkinByHero: Record<HeroClassId, string>;
-  unlockedWeapons: string[];
-  selectedWeapon: string;
   totalTimePlayedMs: number;
   muted: boolean;
   streakDays: number;
