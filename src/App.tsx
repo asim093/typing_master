@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AchievementToast, GameScreen, WorldId } from './types';
 import { usePlayerStore } from './store/playerStore';
-import { getWorld } from './data/worlds';
+import { getWorld, getWorldForLevel } from './data/worlds';
 import { useAchievementWatcher } from './hooks/useAchievementWatcher';
 import { setAudioMuted } from './game/audio';
-import { preloadHeroClass } from './game/modelPreload';
+import { preloadHeroClass, preloadWorld } from './game/modelPreload';
 import MainMenu from './components/screens/MainMenu';
 import WorldSelect from './components/screens/WorldSelect';
 import SkillTree from './components/screens/SkillTree';
@@ -27,14 +27,17 @@ export default function App() {
   const addPlayTime = usePlayerStore((s) => s.addPlayTime);
   const recordDailyLogin = usePlayerStore((s) => s.recordDailyLogin);
   const heroClass = usePlayerStore((s) => s.heroClass);
+  const level = usePlayerStore((s) => s.level);
   const [toasts, setToasts] = useState<AchievementToast[]>([]);
 
-  // Start fetching the hero's GLB the moment the app opens — by the time the
-  // player has clicked through a menu or two to reach battle, it's often
+  // Start fetching the hero's GLB + the player's likely world the moment the
+  // app opens (main menu, before they've even clicked anything) — by the
+  // time they've clicked through a menu or two to reach battle, it's often
   // already cached instead of the fight opening to a blank loading screen.
   useEffect(() => {
     preloadHeroClass(heroClass);
-  }, [heroClass]);
+    preloadWorld(getWorldForLevel(level));
+  }, [heroClass, level]);
 
   useAchievementWatcher((achievement) => {
     const id = ++toastId;

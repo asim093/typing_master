@@ -1,8 +1,41 @@
 import { useProgress } from '@react-three/drei';
 import { AnimatePresence, motion } from 'framer-motion';
 
-export default function ModelLoadingOverlay() {
-  const { active, progress, item } = useProgress();
+interface ModelLoadingOverlayProps {
+  /**
+   * 'overlay' blocks the screen (fine on a static preview screen with nothing
+   * else to look at). 'badge' is a small non-blocking corner indicator — use
+   * this anywhere gameplay is already happening underneath (the Suspense
+   * fallback already renders a playable low-poly stand-in instantly, so
+   * there's nothing to actually wait for; a full-screen block there just
+   * makes an already-running fight look frozen).
+   */
+  variant?: 'overlay' | 'badge';
+}
+
+export default function ModelLoadingOverlay({ variant = 'overlay' }: ModelLoadingOverlayProps) {
+  const { active, progress } = useProgress();
+
+  if (variant === 'badge') {
+    return (
+      <AnimatePresence>
+        {active && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            className="absolute bottom-4 right-4 z-40 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 border border-white/10 backdrop-blur-sm"
+          >
+            <span className="w-3 h-3 rounded-full border-2 border-violet-300/40 border-t-violet-300 animate-spin shrink-0" />
+            <span className="text-[10px] font-mono-game text-white/50 tabular-nums whitespace-nowrap">
+              Enhancing visuals {Math.round(progress)}%
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
+
   return (
     <AnimatePresence>
       {active && (
@@ -21,7 +54,6 @@ export default function ModelLoadingOverlay() {
             />
           </div>
           <div className="mt-2 text-xs text-white/40 font-mono-game">{Math.round(progress)}%</div>
-          <div className="mt-1 text-[10px] text-white/25 truncate max-w-xs">{item}</div>
         </motion.div>
       )}
     </AnimatePresence>

@@ -11,10 +11,11 @@ npm run dev
 
 ## Character models
 
-The hero and enemy 3D models are large GLB files (20-140MB each) that live outside this repo — they're `.gitignore`d since several exceed GitHub's per-file size limit.
+The hero and enemy GLB models ship compressed and committed directly in `public/` (each under 30MB — compressed from 20-140MB originals via `scripts/compress-model.mjs`, texture recompression + mesh decimation, no visible quality loss at game render scale). A service worker (`public/sw.js`) caches each one permanently after its first load, so repeat visits never re-download them.
 
-- **Local dev**: drop the `.glb` files into `public/` and everything resolves as normal (`VITE_ASSET_BASE_URL` unset).
-- **Production**: upload the `.glb` files to a CDN/bucket and set `VITE_ASSET_BASE_URL` (see `.env.example`) to that base URL — every model request resolves there instead.
+- **Local dev**: works out of the box — nothing to configure.
+- **Optional CDN**: set `VITE_ASSET_BASE_URL` (see `.env.example`) to serve models from a CDN/bucket instead of same-origin (useful for geographic distribution at scale, not required for the app to work).
+- **Adding/replacing a model**: compress it first — see the usage note at the top of `scripts/compress-model.mjs` — then commit the compressed file under the same filename models are referenced by (see `src/components/battle/enemies/*GLB.tsx` / `src/components/battle/heroes/WarriorGLB.tsx`).
 
 ## Scripts
 

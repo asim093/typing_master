@@ -19,7 +19,6 @@ export default function WarriorGLB({ attackSeed, hitSeed, hitCrit, victorySeed }
 
   return (
     <group ref={groupRef}>
-      {/* Turn to a 3/4 profile toward the enemy instead of squaring up to the audience. */}
       <group rotation={[0, -Math.PI / 2, 0]}>
         <primitive object={model} />
       </group>

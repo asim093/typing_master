@@ -76,7 +76,7 @@ export default function Battle({ world, onExit }: BattleProps) {
         playerHitSeed={engine.playerHitSeed}
       />
 
-      <ModelLoadingOverlay />
+      <ModelLoadingOverlay variant="badge" />
 
       <HitFlashOverlay
         enemyHitSeed={engine.enemyHitSeed}

@@ -12,9 +12,9 @@ dist
 dist-ssr
 *.local
 
-# Character model files (20-140MB each) — too large for a normal git push.
-# Hosted externally in production; see .env.example / README.
-public/*.glb
+# Character model files: now compressed (see scripts/compress-models — under
+# 30MB each) and committed directly, so no external CDN is required. If you
+# swap in fresh uncompressed source files, compress them before committing.
 .env
 .env.local
 
