@@ -1,0 +1,84 @@
+import { useCallback, useEffect, useState } from 'react';
+import type { AchievementToast, GameScreen, WorldId } from './types';
+import { usePlayerStore } from './store/playerStore';
+import { getWorld } from './data/worlds';
+import { useAchievementWatcher } from './hooks/useAchievementWatcher';
+import { setAudioMuted } from './game/audio';
+import { preloadHeroClass } from './game/modelPreload';
+import MainMenu from './components/screens/MainMenu';
+import WorldSelect from './components/screens/WorldSelect';
+import SkillTree from './components/screens/SkillTree';
+import Achievements from './components/screens/Achievements';
+import HeroSelect from './components/screens/HeroSelect';
+import Profile from './components/screens/Profile';
+import HowToPlay from './components/screens/HowToPlay';
+import Settings from './components/screens/Settings';
+import Battle from './components/screens/Battle';
+import AchievementToastLayer from './components/ui/AchievementToastLayer';
+
+let toastId = 0;
+const PLAYTIME_TICK_MS = 10000;
+
+export default function App() {
+  const [screen, setScreen] = useState<GameScreen>('menu');
+  const currentWorldId = usePlayerStore((s) => s.currentWorld);
+  const setCurrentWorld = usePlayerStore((s) => s.setCurrentWorld);
+  const muted = usePlayerStore((s) => s.muted);
+  const addPlayTime = usePlayerStore((s) => s.addPlayTime);
+  const recordDailyLogin = usePlayerStore((s) => s.recordDailyLogin);
+  const heroClass = usePlayerStore((s) => s.heroClass);
+  const [toasts, setToasts] = useState<AchievementToast[]>([]);
+
+  // Start fetching the hero's GLB the moment the app opens — by the time the
+  // player has clicked through a menu or two to reach battle, it's often
+  // already cached instead of the fight opening to a blank loading screen.
+  useEffect(() => {
+    preloadHeroClass(heroClass);
+  }, [heroClass]);
+
+  useAchievementWatcher((achievement) => {
+    const id = ++toastId;
+    setToasts((prev) => [...prev, { id, achievement }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4200);
+  });
+
+  useEffect(() => {
+    setAudioMuted(muted);
+  }, [muted]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => addPlayTime(PLAYTIME_TICK_MS), PLAYTIME_TICK_MS);
+    return () => window.clearInterval(id);
+  }, [addPlayTime]);
+
+  useEffect(() => {
+    recordDailyLogin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const enterWorld = useCallback(
+    (worldId: WorldId) => {
+      setCurrentWorld(worldId);
+      setScreen('battle');
+    },
+    [setCurrentWorld],
+  );
+
+  return (
+    <div className="w-full h-full relative">
+      {screen === 'menu' && <MainMenu onNavigate={setScreen} />}
+      {screen === 'worldSelect' && <WorldSelect onEnter={enterWorld} onBack={() => setScreen('menu')} />}
+      {screen === 'skillTree' && <SkillTree onBack={() => setScreen('menu')} />}
+      {screen === 'achievements' && <Achievements onBack={() => setScreen('menu')} />}
+      {screen === 'heroSelect' && <HeroSelect onBack={() => setScreen('menu')} />}
+      {screen === 'profile' && <Profile onBack={() => setScreen('menu')} />}
+      {screen === 'howToPlay' && <HowToPlay onBack={() => setScreen('menu')} />}
+      {screen === 'settings' && <Settings onBack={() => setScreen('menu')} onNavigate={setScreen} />}
+      {screen === 'battle' && <Battle world={getWorld(currentWorldId)} onExit={() => setScreen('worldSelect')} />}
+
+      <AchievementToastLayer toasts={toasts} />
+    </div>
+  );
+}
