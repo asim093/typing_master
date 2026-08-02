@@ -11,6 +11,7 @@ import GradientSky from './GradientSky';
 import ParticleBurst from './ParticleBurst';
 import ImpactRing from './ImpactRing';
 import Shockwave from './Shockwave';
+import ArenaEnvironment from './ArenaEnvironment';
 import SlashTelegraph from './SlashTelegraph';
 import TimeScaleController from './TimeScaleController';
 import WorldEnvironment from './environments/WorldEnvironment';
@@ -78,7 +79,25 @@ function Arena3D({
       <CameraRig shakeSeed={shakeSeed} bossIntro={phase === 'bossIntro'} />
       <TimeScaleController />
 
-      <ambientLight intensity={lighting.ambientIntensity} color={colors.glow} />
+      {/* Gives every metallic surface something to actually reflect — see
+          ArenaEnvironment. Without it, armour/blades/ice render near-black. */}
+      <ArenaEnvironment
+        skyTop={colors.sky[0]}
+        skyHorizon={colors.sky[1]}
+        ground={colors.ground}
+        keyLight={lighting.directionalColor}
+      />
+
+      {/* Hemisphere rather than flat ambient: sky colour from above, bounced
+          ground colour from below. Costs the same as an ambientLight but
+          stops everything being lit by one uniform tint, which is a large
+          part of why untextured surfaces looked "gamey". */}
+      <hemisphereLight
+        intensity={lighting.ambientIntensity * 0.9}
+        color={colors.sky[0]}
+        groundColor={colors.ground}
+      />
+      <ambientLight intensity={lighting.ambientIntensity * 0.35} color={colors.glow} />
       <directionalLight
         position={[4, 8, 4]}
         intensity={lighting.directionalIntensity}
