@@ -7,7 +7,7 @@ import { useCombatEngine } from '../../game/useCombatEngine';
 import { getSkin } from '../../data/skins';
 import { getWeaponForClass } from '../../data/weapons';
 import { getBossStatus } from '../../data/enemies';
-import { startAmbient, stopAmbient, playSfx } from '../../game/audio';
+import { startAmbient, stopAmbient, playSfx, speak, cancelSpeech, primeSpeech } from '../../game/audio';
 import Arena3D from '../battle/Arena3D';
 import HUD from '../ui/HUD';
 import WordDisplay from '../ui/WordDisplay';
@@ -21,6 +21,7 @@ import BossIntroOverlay from '../ui/BossIntroOverlay';
 import DefeatOverlay from '../ui/DefeatOverlay';
 import ModelLoadingOverlay from '../ui/ModelLoadingOverlay';
 import LoadingScreen from '../ui/LoadingScreen';
+import CountdownOverlay from '../ui/CountdownOverlay';
 import SessionSummaryOverlay from '../ui/SessionSummaryOverlay';
 
 interface BattleProps {
@@ -76,6 +77,58 @@ export default function Battle({ world, onExit }: BattleProps) {
     return () => window.clearTimeout(t);
   }, [assetsLoading, initialLoadDone]);
 
+  // "3 · 2 · 1 · FIGHT!" once the arena is actually on screen, so the fight
+  // starts on the player's terms instead of mid-swing. Runs on real time
+  // rather than frames so a slow first render can't stretch it out.
+  const [countdown, setCountdown] = useState<number | null>(null);
+  useEffect(() => {
+    if (!initialLoadDone) return;
+    setCountdown(3);
+  }, [initialLoadDone]);
+
+  // Spoken as words, not numerals — engines read "3" inconsistently across
+  // voices and locales, while "Three" is unambiguous everywhere.
+  const COUNTDOWN_WORD: Record<number, string> = { 3: 'Three', 2: 'Two', 1: 'One' };
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown > 0) {
+      playSfx('uiClick');
+      speak(COUNTDOWN_WORD[countdown] ?? String(countdown), { rate: 1.25 });
+    } else {
+      playSfx('uiConfirm');
+      speak('Fight', { rate: 1.05, pitch: 1.15 });
+    }
+    const t = window.setTimeout(() => {
+      setCountdown((c) => (c === null ? null : c > 0 ? c - 1 : null));
+    }, countdown > 0 ? 800 : 620);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdown]);
+
+  // Anything blocking the player from actually playing must also freeze the
+  // fight. Every one of these was (or would have been) a way to take damage
+  // from a fight you couldn't see or reach:
+  //   - loading screen covering the arena
+  //   - the pre-fight countdown
+  //   - the session summary overlay sitting on top of a live fight
+  //   - the tab being hidden (background intervals keep firing)
+  const [documentHidden, setDocumentHidden] = useState(false);
+  useEffect(() => {
+    const onVis = () => setDocumentHidden(document.hidden);
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
+  const setPaused = engine.setPaused;
+  const shouldPause = !initialLoadDone || countdown !== null || showSummary || documentHidden;
+  useEffect(() => {
+    setPaused(shouldPause);
+  }, [shouldPause, setPaused]);
+
+  // Never leave speech queued behind a screen the player has left.
+  useEffect(() => () => cancelSpeech(), []);
+
   useEffect(() => {
     inputRef.current?.focus();
   }, [engine.phase]);
@@ -100,6 +153,12 @@ export default function Battle({ world, onExit }: BattleProps) {
     startAmbient(world.id);
     return () => stopAmbient();
   }, [world.id]);
+
+  // Warm the speech engine while the loading screen is still up, so the
+  // first spoken number isn't paying the engine's cold-start cost live.
+  useEffect(() => {
+    primeSpeech();
+  }, []);
 
   const focusInput = () => inputRef.current?.focus();
 
@@ -188,7 +247,9 @@ export default function Battle({ world, onExit }: BattleProps) {
       {/* Mobile-only affordance: until the keyboard is up there is nothing
           on screen telling a touch player how to play at all. */}
       {engine.phase === 'fighting' && !keyboardOpen && (
-        <div className="sm:hidden absolute inset-x-0 bottom-8 flex justify-center z-20 pointer-events-none px-4">
+        // Sits well clear of the bottom edge so it can't collide with the
+        // globally-mounted landscape suggestion, which anchors down there.
+        <div className="sm:hidden absolute inset-x-0 bottom-28 flex justify-center z-20 pointer-events-none px-4">
           <div className="rounded-full bg-violet-500/90 text-white text-sm font-bold px-5 py-2.5 shadow-lg animate-pulse">
             Tap anywhere to start typing
           </div>
@@ -255,6 +316,8 @@ export default function Battle({ world, onExit }: BattleProps) {
           />
         )}
       </AnimatePresence>
+
+      {initialLoadDone && <CountdownOverlay value={countdown} />}
 
       <AnimatePresence>{!initialLoadDone && <LoadingScreen />}</AnimatePresence>
     </div>

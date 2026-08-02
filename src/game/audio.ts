@@ -62,6 +62,81 @@ function getCtx(): AudioContext | null {
 export function setAudioMuted(value: boolean) {
   muted = value;
   if (masterGain) masterGain.gain.value = value ? 0 : 0.35;
+  if (value) cancelSpeech();
+}
+
+let speechPrimed = false;
+
+/**
+ * Wakes the speech engine up ahead of time.
+ *
+ * The first utterance on a page is always late — the engine has to spin up
+ * and load its voice list, which can take hundreds of milliseconds. During a
+ * countdown that lateness is very visible. Speaking one silent utterance
+ * early (while the loading screen is still up) absorbs that cost where
+ * nobody can hear it, so the first real line lands on time.
+ */
+export function primeSpeech() {
+  if (speechPrimed) return;
+  speechPrimed = true;
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    synth.getVoices(); // kicks off async voice loading
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    synth.speak(u);
+  } catch {
+    /* no speech engine — nothing to prime */
+  }
+}
+
+/**
+ * Speaks a short line using the browser's built-in speech synthesis.
+ *
+ * Deliberately not a recorded audio file: shipping voice clips would mean
+ * new binary assets (and a set per line), while every target browser can
+ * already say a word out loud for free. Speech is a garnish — every failure
+ * path here degrades to silence rather than throwing, because a missing
+ * voice must never interrupt the countdown it's decorating.
+ *
+ * speak() *queues* by default, so a countdown firing faster than the engine
+ * can vocalise would stack up and drain after the numbers had already gone
+ * — the voice trailing the visuals. Cancelling first makes each line
+ * replace the previous one instead, so what you hear always matches what is
+ * on screen; a line that couldn't keep up is dropped rather than delayed.
+ */
+export function speak(text: string, opts?: { rate?: number; pitch?: number; volume?: number }) {
+  if (muted) return;
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = opts?.rate ?? 1.15;
+    u.pitch = opts?.pitch ?? 1;
+    u.volume = opts?.volume ?? 0.95;
+    // Chrome can silently drop an utterance queued in the same tick as
+    // cancel(); deferring by a tick makes it reliable.
+    window.setTimeout(() => {
+      try {
+        synth.speak(u);
+      } catch {
+        /* engine went away mid-countdown */
+      }
+    }, 0);
+  } catch {
+    /* speech unavailable — the on-screen countdown carries it alone */
+  }
+}
+
+export function cancelSpeech() {
+  try {
+    window.speechSynthesis?.cancel();
+  } catch {
+    /* nothing to cancel */
+  }
 }
 
 function tone(

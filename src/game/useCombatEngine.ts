@@ -111,7 +111,7 @@ export function useCombatEngine(world: World) {
   const [runBestCombo, setRunBestCombo] = useState(0);
   const [runUnlocks, setRunUnlocks] = useState<string[]>([]);
   const [sessionWpm, setSessionWpm] = useState(0);
-  const [runStartTime] = useState(() => performance.now());
+  const [runStartTime, setRunStartTime] = useState(() => performance.now());
 
   const wordDeadlineRef = useRef<number>(0);
   const wordStartRef = useRef<number>(0);
@@ -122,7 +122,14 @@ export function useCombatEngine(world: World) {
   const enemyAttackCountRef = useRef(0);
   const runStartRef = useRef(performance.now());
   const runCorrectCharsRef = useRef(0);
+  // Mirrored as both state and ref on purpose: the ref is read inside the
+  // rAF word-deadline loop (which must not re-subscribe every toggle), while
+  // the state drives the enemy attack interval's effect deps so pausing
+  // actually tears that timer down instead of leaving it running.
   const pausedRef = useRef(false);
+  const pauseStartedAtRef = useRef(0);
+  const currentWordRef = useRef("");
+  const [paused, setPausedState] = useState(false);
   // The enemy's authoritative HP, updated synchronously the instant a word
   // lands. The visible HP drop is deferred to the moment the hero actually
   // reaches the enemy (see HERO_CONTACT_DELAY_MS), so `enemy.hp` in state
@@ -185,10 +192,15 @@ export function useCombatEngine(world: World) {
     // it can actually afford to block for the current tier's pool size.
     recentWordsRef.current = [...recentWordsRef.current, word].slice(-60);
     setCurrentWord(word);
+    currentWordRef.current = word;
     setTypedInput('');
     mistakesRef.current = 0;
     wordStartRef.current = performance.now();
-    wordDeadlineRef.current = performance.now() + wordTimeLimitMs(word.length, level);
+    // While paused (loading screen up) the clock must not start ticking —
+    // otherwise the very first word is already expiring behind the overlay.
+    wordDeadlineRef.current = pausedRef.current
+      ? Number.POSITIVE_INFINITY
+      : performance.now() + wordTimeLimitMs(word.length, level);
   }, [world.id]);
 
   const spawnEncounter = useCallback(() => {
@@ -272,9 +284,41 @@ export function useCombatEngine(world: World) {
     playEnemySword();
   }, [pushFloating]);
 
+  /**
+   * Freezes the fight without unmounting it. Used while the loading screen
+   * covers the arena: the encounter spawns (so models can stream in) but the
+   * enemy must not be allowed to attack, and the word clock must not run,
+   * while the player literally cannot see or reach the game.
+   *
+   * Resuming refreshes the word deadline and the run clock, because both
+   * were started at spawn — without that the player would unpause into an
+   * already-expired word and a run timer that had been counting the whole
+   * load.
+   */
+  const setPaused = useCallback((next: boolean) => {
+    const wasPaused = pausedRef.current;
+    pausedRef.current = next;
+    setPausedState(next);
+    if (wasPaused && !next) {
+      const now = performance.now();
+      const pausedFor = now - pauseStartedAtRef.current;
+      wordStartRef.current = now;
+      wordDeadlineRef.current = now + wordTimeLimitMs(
+        currentWordRef.current.length,
+        usePlayerStore.getState().level,
+      );
+      // Shift the run clock forward so loading time isn't counted as play
+      // time (it would otherwise drag the run's WPM down).
+      runStartRef.current += pausedFor;
+      setRunStartTime((t) => t + pausedFor);
+    } else if (next) {
+      pauseStartedAtRef.current = performance.now();
+    }
+  }, []);
+
   // Enemy periodic attack timer
   useEffect(() => {
-    if (!enemy || phase !== 'fighting') return;
+    if (!enemy || phase !== 'fighting' || paused) return;
     const id = window.setInterval(() => {
       enemyAttackCountRef.current += 1;
       const isSpecial = enemy.isBoss && enemyAttackCountRef.current % 3 === 0;
@@ -286,7 +330,7 @@ export function useCombatEngine(world: World) {
       applyPlayerDamage(dmg, isSpecial);
     }, enemy.attackIntervalMs);
     return () => window.clearInterval(id);
-  }, [enemy, phase, applyPlayerDamage, pushEvent]);
+  }, [enemy, phase, paused, applyPlayerDamage, pushEvent]);
 
   // Word timeout watcher
   useEffect(() => {
@@ -463,6 +507,11 @@ export function useCombatEngine(world: World) {
 
   const handleInputChange = useCallback((value: string) => {
     if (phase !== 'fighting') return;
+    // Paused means the player isn't meant to be able to act yet — during the
+    // pre-fight countdown, behind the loading screen, or under the summary
+    // overlay. The word stays readable so they can plan, but keystrokes
+    // must not land damage before the fight has actually begun.
+    if (pausedRef.current) return;
     if (value.length > typedInput.length) {
       const idx = value.length - 1;
       totalKeystrokesRef.current += 1;
@@ -515,6 +564,7 @@ export function useCombatEngine(world: World) {
     sessionAccuracy,
     sessionWpm,
     runStartTime,
+    setPaused,
     runEnemiesDefeated,
     runXpEarned,
     runCoinsEarned,

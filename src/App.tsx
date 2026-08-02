@@ -15,6 +15,7 @@ import HowToPlay from './components/screens/HowToPlay';
 import Settings from './components/screens/Settings';
 import Battle from './components/screens/Battle';
 import AchievementToastLayer from './components/ui/AchievementToastLayer';
+import RotatePrompt from './components/ui/RotatePrompt';
 
 let toastId = 0;
 const PLAYTIME_TICK_MS = 10000;
@@ -81,6 +82,7 @@ export default function App() {
       {screen === 'battle' && <Battle world={getWorld(currentWorldId)} onExit={() => setScreen('worldSelect')} />}
 
       <AchievementToastLayer toasts={toasts} />
+      <RotatePrompt />
     </div>
   );
 }

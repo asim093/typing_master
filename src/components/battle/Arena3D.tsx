@@ -86,6 +86,20 @@ function Arena3D({
         castShadow
         shadow-mapSize-width={512}
         shadow-mapSize-height={512}
+        // Three's default shadow camera is a ±5 box with far=500. That far
+        // plane spreads the depth buffer over 500 units for a scene that
+        // only needs ~20, which is what makes the shadows mushy and prone
+        // to acne. Tightening the frustum to just the fight area sharpens
+        // them substantially at the *same* 512 map — free quality rather
+        // than a bigger texture, which matters given the frame budget.
+        shadow-camera-near={1}
+        shadow-camera-far={22}
+        shadow-camera-left={-8}
+        shadow-camera-right={8}
+        shadow-camera-top={8}
+        shadow-camera-bottom={-8}
+        shadow-bias={-0.0015}
+        shadow-normalBias={0.02}
       />
       <pointLight position={[-3, 2, -2]} intensity={1.2} color={colors.accent} />
       <pointLight position={[3, 1.5, 2]} intensity={0.8} color={colors.glow} />
@@ -107,7 +121,13 @@ function Arena3D({
           <meshBasicMaterial color={colors.accent} transparent opacity={0.35} toneMapped={false} />
         </mesh>
 
-        <ContactShadows position={[0, 0.01, 0]} opacity={0.55} scale={10} blur={2.2} far={4} frames={1} resolution={512} />
+        {/* Grounding shadow under the fighters. Previously frames={1}, which
+            renders a single frame and freezes — so the shadow stayed behind
+            while the character lunged or collapsed, and they read as
+            floating. Now it updates every frame; resolution is halved to pay
+            for that, which costs nothing visually because the result is
+            blurred anyway. */}
+        <ContactShadows position={[0, 0.012, 0]} opacity={0.6} scale={11} blur={2.6} far={4.5} resolution={256} />
 
         <WorldEnvironment worldId={world.id} />
 
